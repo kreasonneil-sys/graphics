@@ -1,16 +1,7 @@
 import React from 'react';
-import { Router } from 'react-router-dom';
 
-import GlobalStyles from './assets/styles/global';
-import Routes from './routes';
-import history from './routes/history';
+import ParticleBall from './pages/ParticleBall';
 
 export default function App() {
-  return (
-    <Router history={history}>
-      <GlobalStyles />
-
-      <Routes />
-    </Router>
-  );
+  return <ParticleBall />;
 }
