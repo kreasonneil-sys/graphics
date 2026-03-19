@@ -319,9 +319,30 @@ export default function ParticleBall() {
         ctx.globalAlpha = pt.alpha;
 
         if (formTextTime && pt.hasTextTarget && formProgress > 0.3) {
-          const shimmer = Math.sin(time * 3 + pt.index * 0.5) * 0.5 + 0.5;
-          const bright = 180 + Math.floor(shimmer * 75);
-          ctx.fillStyle = `rgb(${bright}, ${bright + Math.floor(shimmer * 20)}, ${bright + Math.floor(shimmer * 40)})`;
+          const shimmer1 = Math.sin(time * 3.5 + pt.index * 0.5) * 0.5 + 0.5;
+          const shimmer2 = Math.sin(time * 5.0 + pt.index * 0.3 + 2.0) * 0.5 + 0.5;
+          const wave = Math.sin(time * 2.0 + pt.x * 0.01 + pt.y * 0.005) * 0.5 + 0.5;
+          const colorType = (pt.index * 7 + Math.floor(shimmer2 * 3)) % 3;
+          let r, g, b;
+          if (colorType === 0) {
+            // Blue
+            r = 60 + Math.floor(shimmer1 * 50);
+            g = 120 + Math.floor(shimmer1 * 60 + wave * 30);
+            b = 220 + Math.floor(shimmer1 * 35);
+          } else if (colorType === 1) {
+            // White
+            const w = 200 + Math.floor(shimmer1 * 55);
+            r = w;
+            g = w;
+            b = w + Math.floor(shimmer2 * 15);
+          } else {
+            // Silver
+            const s = 160 + Math.floor(shimmer1 * 60 + wave * 25);
+            r = s - Math.floor(shimmer2 * 10);
+            g = s;
+            b = s + Math.floor(shimmer2 * 20);
+          }
+          ctx.fillStyle = `rgb(${r},${g},${b})`;
         } else {
           ctx.fillStyle = getParticleColor(pt.z, time, pt.index, pt.isGrey);
         }
@@ -350,13 +371,22 @@ export default function ParticleBall() {
           }
         }
 
-        // Shimmer on formed text
-        if (formTextTime && pt.hasTextTarget && formProgress > 0.5) {
-          const glint = Math.sin(time * 6 + pt.index * 0.6) * 0.5 + 0.5;
-          if (glint > 0.6) {
+        // Shimmer on formed text — travelling sparkle wave
+        if (formTextTime && pt.hasTextTarget && formProgress > 0.4) {
+          const wave = Math.sin(time * 2.5 - pt.x * 0.015 + pt.y * 0.008) * 0.5 + 0.5;
+          const glint = Math.sin(time * 7 + pt.index * 0.6) * 0.5 + 0.5;
+          const sparkle = wave * glint;
+          if (sparkle > 0.4) {
+            const intensity = (sparkle - 0.4) * 2.5 * pt.alpha;
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, pt.size * 0.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.6) * 1.5 * pt.alpha})`;
+            ctx.arc(pt.x, pt.y, pt.size * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(220, 235, 255, ${Math.min(intensity, 1)})`;
+            ctx.fill();
+          }
+          if (sparkle > 0.7) {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, pt.size * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${(sparkle - 0.7) * 3 * pt.alpha})`;
             ctx.fill();
           }
         }
