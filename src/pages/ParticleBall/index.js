@@ -3,7 +3,9 @@ import React, { useRef, useEffect } from 'react';
 const PARTICLE_COUNT = 1400;
 const SPHERE_RADIUS = 180;
 const INTRO_DURATION = 12000;
-const BASE_ROTATION_SPEED = 0.0012;
+const BASE_ROTATION_SPEED = 0.0008;
+const AXIAL_TILT = 23.4 * (Math.PI / 180);
+const GREY_RATIO = 0.18;
 const EXPLODE_DURATION = 800;
 const FLOAT_AMPLITUDE = 8;
 const FLOAT_SPEED = 0.4;
@@ -24,8 +26,15 @@ function fibonacci(count) {
   return points;
 }
 
-function getParticleColor(normalizedZ, time, index) {
+function getParticleColor(normalizedZ, time, index, isGrey) {
   const shimmer = Math.sin(time * 2.5 + index * 0.4) * 0.5 + 0.5;
+
+  if (isGrey) {
+    const pulse = Math.sin(time * 3.5 + index * 0.9) * 0.5 + 0.5;
+    const base = 140 + Math.floor(pulse * 80 + shimmer * 35);
+    return `rgb(${base},${base + Math.floor(shimmer * 8)},${base + Math.floor(shimmer * 15)})`;
+  }
+
   const facet = Math.sin(time * 1.2 + index * 0.7) * 0.5 + 0.5;
 
   if (facet > 0.5) {
@@ -71,6 +80,7 @@ export default function ParticleBall() {
         target,
         index: i,
         floatOffset,
+        isGrey: Math.random() < GREY_RATIO,
         explodeVx: 0,
         explodeVy: 0,
         explodeX: 0,
@@ -92,11 +102,10 @@ export default function ParticleBall() {
         const cy = canvas.height / 2;
         const time = performance.now() / 1000;
         const rotYAngle = time * BASE_ROTATION_SPEED * 6;
-        const rotXAngle = Math.sin(time * 0.3) * 0.3;
 
         for (const p of particles) {
           let rotated = rotateY(p.target, rotYAngle);
-          rotated = rotateX(rotated, rotXAngle);
+          rotated = rotateZ(rotated, AXIAL_TILT);
 
           const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
           const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
@@ -126,13 +135,13 @@ export default function ParticleBall() {
       };
     }
 
-    function rotateX(point, angle) {
+    function rotateZ(point, angle) {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       return {
-        x: point.x,
-        y: point.y * cos - point.z * sin,
-        z: point.y * sin + point.z * cos,
+        x: point.x * cos - point.y * sin,
+        y: point.x * sin + point.y * cos,
+        z: point.z,
       };
     }
 
@@ -152,7 +161,6 @@ export default function ParticleBall() {
 
       const time = timestamp / 1000;
       const rotYAngle = time * BASE_ROTATION_SPEED * 6;
-      const rotXAngle = Math.sin(time * 0.3) * 0.3;
 
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
@@ -170,7 +178,7 @@ export default function ParticleBall() {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
         let rotated = rotateY(p.target, rotYAngle);
-        rotated = rotateX(rotated, rotXAngle);
+        rotated = rotateZ(rotated, AXIAL_TILT);
 
         const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
         const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
@@ -203,6 +211,7 @@ export default function ParticleBall() {
           size,
           alpha,
           index: i,
+          isGrey: p.isGrey,
         });
       }
 
@@ -210,7 +219,7 @@ export default function ParticleBall() {
 
       for (const pt of projected) {
         if (pt.alpha <= 0) continue;
-        const color = getParticleColor(pt.z, time, pt.index);
+        const color = getParticleColor(pt.z, time, pt.index, pt.isGrey);
         ctx.globalAlpha = pt.alpha;
 
         ctx.beginPath();
@@ -218,13 +227,23 @@ export default function ParticleBall() {
         ctx.fillStyle = color;
         ctx.fill();
 
-        if (pt.z > 0.2 && !explodeTime) {
-          const glint = Math.sin(time * 4 + pt.index * 1.3) * 0.5 + 0.5;
-          if (glint > 0.7) {
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, pt.size * 0.5, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.7) * 2})`;
-            ctx.fill();
+        if (!explodeTime) {
+          if (pt.isGrey) {
+            const glint = Math.sin(time * 5 + pt.index * 0.8) * 0.5 + 0.5;
+            if (glint > 0.5) {
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, pt.size * 0.7, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.5) * 1.2})`;
+              ctx.fill();
+            }
+          } else if (pt.z > 0.2) {
+            const glint = Math.sin(time * 4 + pt.index * 1.3) * 0.5 + 0.5;
+            if (glint > 0.7) {
+              ctx.beginPath();
+              ctx.arc(pt.x, pt.y, pt.size * 0.5, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.7) * 2})`;
+              ctx.fill();
+            }
           }
         }
       }
