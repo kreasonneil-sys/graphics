@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 
 const PARTICLE_COUNT = 1400;
 const SPHERE_RADIUS = 180;
-const INTRO_DURATION = 10000;
+const INTRO_DURATION = 12000;
 const BASE_ROTATION_SPEED = 0.0012;
 const EXPLODE_DURATION = 800;
 const FLOAT_AMPLITUDE = 8;
@@ -57,10 +57,10 @@ export default function ParticleBall() {
       const side = Math.floor(Math.random() * 4);
       let sx, sy;
       switch (side) {
-        case 0: sx = -50; sy = Math.random() * window.innerHeight; break;
-        case 1: sx = window.innerWidth + 50; sy = Math.random() * window.innerHeight; break;
-        case 2: sx = Math.random() * window.innerWidth; sy = -50; break;
-        default: sx = Math.random() * window.innerWidth; sy = window.innerHeight + 50; break;
+        case 0: sx = -10; sy = Math.random() * window.innerHeight; break;
+        case 1: sx = window.innerWidth + 10; sy = Math.random() * window.innerHeight; break;
+        case 2: sx = Math.random() * window.innerWidth; sy = -10; break;
+        default: sx = Math.random() * window.innerWidth; sy = window.innerHeight + 10; break;
       }
 
       const floatOffset = Math.random() * Math.PI * 2;
@@ -136,8 +136,8 @@ export default function ParticleBall() {
       };
     }
 
-    function easeInOutQuart(t) {
-      return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+    function easeOutSine(t) {
+      return Math.sin((t * Math.PI) / 2);
     }
 
     function easeOutCubic(t) {
@@ -148,7 +148,7 @@ export default function ParticleBall() {
       if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / INTRO_DURATION, 1);
-      const easedProgress = easeInOutQuart(progress);
+      const easedProgress = easeOutSine(progress);
 
       const time = timestamp / 1000;
       const rotYAngle = time * BASE_ROTATION_SPEED * 6;
