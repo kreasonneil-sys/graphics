@@ -3,7 +3,8 @@ import React, { useRef, useEffect } from 'react';
 const PARTICLE_COUNT = 1400;
 const SPHERE_RADIUS = 180;
 const INTRO_DURATION = 3000;
-const BASE_ROTATION_SPEED = 0.003;
+const BASE_ROTATION_SPEED = 0.0012;
+const EXPLODE_DURATION = 800;
 
 function fibonacci(count) {
   const points = [];
@@ -46,6 +47,7 @@ export default function ParticleBall() {
     const ctx = canvas.getContext('2d');
     let animId;
     let startTime = null;
+    let explodeTime = null;
 
     const spherePoints = fibonacci(PARTICLE_COUNT);
 
@@ -58,11 +60,19 @@ export default function ParticleBall() {
         case 2: sx = Math.random() * window.innerWidth; sy = -50; break;
         default: sx = Math.random() * window.innerWidth; sy = window.innerHeight + 50; break;
       }
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 4;
+
       return {
         startX: sx,
         startY: sy,
         target,
         index: i,
+        explodeVx: Math.cos(angle) * speed,
+        explodeVy: Math.sin(angle) * speed,
+        explodeX: 0,
+        explodeY: 0,
       };
     });
 
@@ -72,6 +82,33 @@ export default function ParticleBall() {
     }
     resize();
     window.addEventListener('resize', resize);
+
+    function handleClick() {
+      if (!explodeTime) {
+        explodeTime = performance.now();
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const time = performance.now() / 1000;
+        const rotYAngle = time * BASE_ROTATION_SPEED * 6;
+        const rotXAngle = Math.sin(time * 0.3) * 0.3;
+
+        for (const p of particles) {
+          let rotated = rotateY(p.target, rotYAngle);
+          rotated = rotateX(rotated, rotXAngle);
+          p.explodeX = cx + rotated.x * SPHERE_RADIUS;
+          p.explodeY = cy + rotated.y * SPHERE_RADIUS;
+
+          const dx = rotated.x;
+          const dy = rotated.y;
+          const dz = rotated.z;
+          const mag = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+          const speed = 4 + Math.random() * 6;
+          p.explodeVx = (dx / mag) * speed + (Math.random() - 0.5) * 3;
+          p.explodeVy = (dy / mag) * speed + (Math.random() - 0.5) * 3;
+        }
+      }
+    }
+    canvas.addEventListener('click', handleClick);
 
     function rotateY(point, angle) {
       const cos = Math.cos(angle);
@@ -104,8 +141,8 @@ export default function ParticleBall() {
       const easedProgress = easeOutCubic(progress);
 
       const time = timestamp / 1000;
-      const rotY = time * BASE_ROTATION_SPEED * 6;
-      const rotX = Math.sin(time * 0.3) * 0.3;
+      const rotYAngle = time * BASE_ROTATION_SPEED * 6;
+      const rotXAngle = Math.sin(time * 0.3) * 0.3;
 
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
@@ -113,22 +150,40 @@ export default function ParticleBall() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      let explodeProgress = 0;
+      if (explodeTime) {
+        explodeProgress = Math.min((timestamp - explodeTime) / EXPLODE_DURATION, 1);
+      }
+
       const projected = [];
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        let rotated = rotateY(p.target, rotY);
-        rotated = rotateX(rotated, rotX);
+        let rotated = rotateY(p.target, rotYAngle);
+        rotated = rotateX(rotated, rotXAngle);
 
         const worldX = cx + rotated.x * SPHERE_RADIUS;
         const worldY = cy + rotated.y * SPHERE_RADIUS;
 
-        const drawX = p.startX + (worldX - p.startX) * easedProgress;
-        const drawY = p.startY + (worldY - p.startY) * easedProgress;
+        let drawX, drawY;
+
+        if (explodeTime) {
+          const baseX = p.explodeX;
+          const baseY = p.explodeY;
+          const eased = easeOutCubic(explodeProgress);
+          drawX = baseX + p.explodeVx * eased * 120;
+          drawY = baseY + p.explodeVy * eased * 120;
+        } else {
+          drawX = p.startX + (worldX - p.startX) * easedProgress;
+          drawY = p.startY + (worldY - p.startY) * easedProgress;
+        }
 
         const depthScale = (rotated.z + 1.5) / 2.5;
-        const size = (0.6 + depthScale * 1.8) * (0.3 + easedProgress * 0.7);
-        const alpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
+        const baseSize = (0.3 + depthScale * 0.9) * (0.3 + easedProgress * 0.7);
+        const baseAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
+
+        const size = explodeTime ? baseSize * (1 - explodeProgress * 0.6) : baseSize;
+        const alpha = explodeTime ? baseAlpha * (1 - explodeProgress) : baseAlpha;
 
         projected.push({
           x: drawX,
@@ -143,6 +198,7 @@ export default function ParticleBall() {
       projected.sort((a, b) => a.z - b.z);
 
       for (const pt of projected) {
+        if (pt.alpha <= 0) continue;
         const color = getParticleColor(pt.z, time, pt.index);
         ctx.globalAlpha = pt.alpha;
 
@@ -151,7 +207,7 @@ export default function ParticleBall() {
         ctx.fillStyle = color;
         ctx.fill();
 
-        if (pt.z > 0.2) {
+        if (pt.z > 0.2 && !explodeTime) {
           const glint = Math.sin(time * 4 + pt.index * 1.3) * 0.5 + 0.5;
           if (glint > 0.7) {
             ctx.beginPath();
@@ -163,6 +219,11 @@ export default function ParticleBall() {
       }
 
       ctx.globalAlpha = 1;
+
+      if (explodeTime && explodeProgress >= 1) {
+        return;
+      }
+
       animId = requestAnimationFrame(render);
     }
 
@@ -171,6 +232,7 @@ export default function ParticleBall() {
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', resize);
+      canvas.removeEventListener('click', handleClick);
     };
   }, []);
 
