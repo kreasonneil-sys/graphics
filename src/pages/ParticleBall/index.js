@@ -29,52 +29,21 @@ function fibonacci(count) {
   return points;
 }
 
-function sampleTextPoints(text, count, canvasWidth, canvasHeight) {
-  const offscreen = document.createElement('canvas');
-  const scale = Math.min(canvasWidth / 900, canvasHeight / 300, 1.5);
-  offscreen.width = canvasWidth;
-  offscreen.height = canvasHeight;
-  const octx = offscreen.getContext('2d');
-  const fontSize = Math.floor(72 * scale);
-  octx.font = `bold ${fontSize}px Arial, sans-serif`;
-  octx.textAlign = 'center';
-  octx.textBaseline = 'middle';
-  octx.fillStyle = '#fff';
-
-  const lines = text.split('\n');
-  const lineHeight = fontSize * 1.3;
-  const totalHeight = lines.length * lineHeight;
-  const startY = canvasHeight / 2 - totalHeight / 2 + lineHeight / 2;
-
-  for (let l = 0; l < lines.length; l++) {
-    octx.fillText(lines[l], canvasWidth / 2, startY + l * lineHeight);
-  }
-
-  const imageData = octx.getImageData(0, 0, offscreen.width, offscreen.height);
-  const pixels = imageData.data;
-  const candidates = [];
-  const step = Math.max(2, Math.floor(3 / scale));
-
-  for (let y = 0; y < offscreen.height; y += step) {
-    for (let x = 0; x < offscreen.width; x += step) {
-      const idx = (y * offscreen.width + x) * 4;
-      if (pixels[idx + 3] > 128) {
-        candidates.push({ x, y });
-      }
-    }
-  }
-
+function heartSurface(count) {
   const points = [];
-  if (candidates.length === 0) return points;
   for (let i = 0; i < count; i++) {
-    const c = candidates[Math.floor(Math.random() * candidates.length)];
-    points.push({
-      x: c.x + (Math.random() - 0.5) * step,
-      y: c.y + (Math.random() - 0.5) * step,
-    });
+    const u = Math.random() * Math.PI * 2;
+    const v = Math.random() * Math.PI;
+    const x = Math.sin(v) * (15 * Math.sin(u) - 4 * Math.sin(3 * u));
+    const y = -(13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u));
+    const z = Math.sin(v) * (15 * Math.cos(u) - 5 * Math.cos(2 * u));
+    const scale = 1 / 17;
+    points.push({ x: x * scale, y: y * scale, z: z * scale });
   }
   return points;
 }
+
+const HEART_RADIUS = 160;
 
 function getParticleColor(normalizedZ, time, index, isGrey) {
   const shimmer = Math.sin(time * 2.5 + index * 0.4) * 0.5 + 0.5;
@@ -109,8 +78,8 @@ export default function ParticleBall() {
     let animId;
     let startTime = null;
     let explodeTime = null;
-    let formTextTime = null;
-    let textTargets = null;
+    let formHeartTime = null;
+    let heartPoints = null;
 
     const spherePoints = fibonacci(PARTICLE_COUNT);
 
@@ -137,9 +106,7 @@ export default function ParticleBall() {
         explodeVy: 0,
         explodeX: 0,
         explodeY: 0,
-        textX: 0,
-        textY: 0,
-        hasTextTarget: false,
+        heartTarget: null,
         explodedFinalX: 0,
         explodedFinalY: 0,
       };
@@ -226,8 +193,8 @@ export default function ParticleBall() {
       const time = timestamp / 1000;
       const rotYAngle = time * BASE_ROTATION_SPEED * 6;
 
-      // Update bounce position (only while sphere is active)
-      if (!explodeTime) {
+      // Update bounce position (only after fully formed, before explode)
+      if (!explodeTime && progress >= 1) {
         const dt = lastBounceTime ? (timestamp - lastBounceTime) : 16;
         lastBounceTime = timestamp;
         bounce.x += bounce.vx * dt * 0.06;
@@ -243,38 +210,30 @@ export default function ParticleBall() {
       const cx = bounce.x;
       const cy = bounce.y;
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       let explodeProgress = 0;
       if (explodeTime) {
         explodeProgress = Math.min((timestamp - explodeTime) / EXPLODE_DURATION, 1);
       }
 
-      // Start text formation after explosion + delay
-      if (explodeTime && explodeProgress >= 1 && !formTextTime) {
+      // Start heart formation after explosion + delay
+      if (explodeTime && explodeProgress >= 1 && !formHeartTime) {
         if (timestamp - (explodeTime + EXPLODE_DURATION) >= FORM_TEXT_DELAY) {
-          formTextTime = timestamp;
-          textTargets = sampleTextPoints('Virtual\nCanvas', PARTICLE_COUNT, canvas.width, canvas.height);
+          formHeartTime = timestamp;
+          heartPoints = heartSurface(PARTICLE_COUNT);
           for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
-            const eased = easeOutCubic(1);
-            p.explodedFinalX = p.explodeX + p.explodeVx * eased * 120;
-            p.explodedFinalY = p.explodeY + p.explodeVy * eased * 120;
-            if (i < textTargets.length) {
-              p.textX = textTargets[i].x;
-              p.textY = textTargets[i].y;
-              p.hasTextTarget = true;
-            } else {
-              p.hasTextTarget = false;
-            }
+            p.explodedFinalX = p.explodeX + p.explodeVx * 120;
+            p.explodedFinalY = p.explodeY + p.explodeVy * 120;
+            p.heartTarget = heartPoints[i];
           }
         }
       }
 
       let formProgress = 0;
-      if (formTextTime) {
-        formProgress = Math.min((timestamp - formTextTime) / FORM_TEXT_DURATION, 1);
+      if (formHeartTime) {
+        formProgress = Math.min((timestamp - formHeartTime) / FORM_TEXT_DURATION, 1);
       }
 
       const projected = [];
@@ -292,19 +251,17 @@ export default function ParticleBall() {
 
         let drawX, drawY, drawAlpha, drawSize;
 
-        if (formTextTime) {
+        if (formHeartTime && p.heartTarget) {
           const easedForm = easeOutCubic(formProgress);
-          if (p.hasTextTarget) {
-            drawX = p.explodedFinalX + (p.textX - p.explodedFinalX) * easedForm;
-            drawY = p.explodedFinalY + (p.textY - p.explodedFinalY) * easedForm;
-            drawAlpha = 0.15 + easedForm * 0.85;
-            drawSize = 0.6 + easedForm * 0.6;
-          } else {
-            drawX = p.explodedFinalX + (Math.random() - 0.5) * 0.3;
-            drawY = p.explodedFinalY + (Math.random() - 0.5) * 0.3;
-            drawAlpha = 0.15 * (1 - easedForm);
-            drawSize = 0.5 * (1 - easedForm);
-          }
+          const heartRotAngle = time * 0.5;
+          const hr = rotateY(p.heartTarget, heartRotAngle);
+          const hx = canvas.width / 2 + hr.x * HEART_RADIUS;
+          const hy = canvas.height / 2 + hr.y * HEART_RADIUS;
+          drawX = p.explodedFinalX + (hx - p.explodedFinalX) * easedForm;
+          drawY = p.explodedFinalY + (hy - p.explodedFinalY) * easedForm;
+          const depthScale = (hr.z + 1.5) / 2.5;
+          drawAlpha = (0.15 + easedForm * 0.85) * (0.4 + depthScale * 0.6);
+          drawSize = (0.6 + easedForm * 0.6) * (0.5 + depthScale * 0.5);
         } else if (explodeTime) {
           const eased = easeOutCubic(explodeProgress);
           drawX = p.explodeX + p.explodeVx * eased * 120;
@@ -330,7 +287,7 @@ export default function ParticleBall() {
           alpha: drawAlpha,
           index: i,
           isGrey: p.isGrey,
-          hasTextTarget: p.hasTextTarget,
+          hasHeart: !!p.heartTarget,
         });
       }
 
@@ -340,14 +297,14 @@ export default function ParticleBall() {
         if (pt.alpha <= 0.01) continue;
         ctx.globalAlpha = pt.alpha;
 
-        if (formTextTime && pt.hasTextTarget && formProgress > 0.3) {
+        if (formHeartTime && pt.hasHeart && formProgress > 0.3) {
           const shimmer1 = Math.sin(time * 3.5 + pt.index * 0.5) * 0.5 + 0.5;
           const shimmer2 = Math.sin(time * 5.0 + pt.index * 0.3 + 2.0) * 0.5 + 0.5;
           const wave = Math.sin(time * 2.0 + pt.x * 0.01 + pt.y * 0.005) * 0.5 + 0.5;
           const colorType = (pt.index * 7 + Math.floor(shimmer2 * 5)) % 5;
           let r, g, b;
           if (colorType <= 2) {
-            // Blue (3 out of 5 — dominant)
+            // Blue (dominant)
             r = 30 + Math.floor(shimmer1 * 40);
             g = 80 + Math.floor(shimmer1 * 50 + wave * 20);
             b = 200 + Math.floor(shimmer1 * 55);
@@ -373,7 +330,7 @@ export default function ParticleBall() {
         ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
         ctx.fill();
 
-        if (!explodeTime && !formTextTime) {
+        if (!explodeTime && !formHeartTime) {
           if (pt.isGrey) {
             const glint = Math.sin(time * 5 + pt.index * 0.8) * 0.5 + 0.5;
             if (glint > 0.5) {
@@ -393,8 +350,8 @@ export default function ParticleBall() {
           }
         }
 
-        // Shimmer on formed text — travelling sparkle wave
-        if (formTextTime && pt.hasTextTarget && formProgress > 0.4) {
+        // Shimmer on formed heart — travelling sparkle wave
+        if (formHeartTime && pt.hasHeart && formProgress > 0.4) {
           const wave = Math.sin(time * 2.5 - pt.x * 0.015 + pt.y * 0.008) * 0.5 + 0.5;
           const glint = Math.sin(time * 7 + pt.index * 0.6) * 0.5 + 0.5;
           const sparkle = wave * glint;
