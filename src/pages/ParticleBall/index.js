@@ -2,9 +2,11 @@ import React, { useRef, useEffect } from 'react';
 
 const PARTICLE_COUNT = 1400;
 const SPHERE_RADIUS = 180;
-const INTRO_DURATION = 3000;
+const INTRO_DURATION = 10000;
 const BASE_ROTATION_SPEED = 0.0012;
 const EXPLODE_DURATION = 800;
+const FLOAT_AMPLITUDE = 8;
+const FLOAT_SPEED = 0.4;
 
 function fibonacci(count) {
   const points = [];
@@ -61,16 +63,16 @@ export default function ParticleBall() {
         default: sx = Math.random() * window.innerWidth; sy = window.innerHeight + 50; break;
       }
 
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 4;
+      const floatOffset = Math.random() * Math.PI * 2;
 
       return {
         startX: sx,
         startY: sy,
         target,
         index: i,
-        explodeVx: Math.cos(angle) * speed,
-        explodeVy: Math.sin(angle) * speed,
+        floatOffset,
+        explodeVx: 0,
+        explodeVy: 0,
         explodeX: 0,
         explodeY: 0,
       };
@@ -95,8 +97,12 @@ export default function ParticleBall() {
         for (const p of particles) {
           let rotated = rotateY(p.target, rotYAngle);
           rotated = rotateX(rotated, rotXAngle);
-          p.explodeX = cx + rotated.x * SPHERE_RADIUS;
-          p.explodeY = cy + rotated.y * SPHERE_RADIUS;
+
+          const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
+          const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
+
+          p.explodeX = cx + rotated.x * SPHERE_RADIUS + floatX;
+          p.explodeY = cy + rotated.y * SPHERE_RADIUS + floatY;
 
           const dx = rotated.x;
           const dy = rotated.y;
@@ -130,6 +136,10 @@ export default function ParticleBall() {
       };
     }
 
+    function easeInOutQuart(t) {
+      return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+    }
+
     function easeOutCubic(t) {
       return 1 - Math.pow(1 - t, 3);
     }
@@ -138,7 +148,7 @@ export default function ParticleBall() {
       if (!startTime) startTime = timestamp;
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / INTRO_DURATION, 1);
-      const easedProgress = easeOutCubic(progress);
+      const easedProgress = easeInOutQuart(progress);
 
       const time = timestamp / 1000;
       const rotYAngle = time * BASE_ROTATION_SPEED * 6;
@@ -162,17 +172,18 @@ export default function ParticleBall() {
         let rotated = rotateY(p.target, rotYAngle);
         rotated = rotateX(rotated, rotXAngle);
 
-        const worldX = cx + rotated.x * SPHERE_RADIUS;
-        const worldY = cy + rotated.y * SPHERE_RADIUS;
+        const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
+        const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
+
+        const worldX = cx + rotated.x * SPHERE_RADIUS + floatX * easedProgress;
+        const worldY = cy + rotated.y * SPHERE_RADIUS + floatY * easedProgress;
 
         let drawX, drawY;
 
         if (explodeTime) {
-          const baseX = p.explodeX;
-          const baseY = p.explodeY;
           const eased = easeOutCubic(explodeProgress);
-          drawX = baseX + p.explodeVx * eased * 120;
-          drawY = baseY + p.explodeVy * eased * 120;
+          drawX = p.explodeX + p.explodeVx * eased * 120;
+          drawY = p.explodeY + p.explodeVy * eased * 120;
         } else {
           drawX = p.startX + (worldX - p.startX) * easedProgress;
           drawY = p.startY + (worldY - p.startY) * easedProgress;
