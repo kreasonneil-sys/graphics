@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npx react-scripts build",
+  "outputDirectory": "build",
+  "framework": "create-react-app",
+  "installCommand": "npm install --legacy-peer-deps"
+}
