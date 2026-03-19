@@ -11,6 +11,7 @@ const FORM_TEXT_DELAY = 400;
 const FORM_TEXT_DURATION = 2000;
 const FLOAT_AMPLITUDE = 8;
 const FLOAT_SPEED = 0.4;
+const BOUNCE_SPEED = 1.5;
 
 function fibonacci(count) {
   const points = [];
@@ -144,6 +145,15 @@ export default function ParticleBall() {
       };
     });
 
+    // Bouncing ball state
+    const bounce = {
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      vx: BOUNCE_SPEED * (Math.random() > 0.5 ? 1 : -1),
+      vy: BOUNCE_SPEED * (Math.random() > 0.5 ? 0.7 : -0.7),
+    };
+    let lastBounceTime = null;
+
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -154,8 +164,6 @@ export default function ParticleBall() {
     function handleClick() {
       if (!explodeTime) {
         explodeTime = performance.now();
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
         const time = performance.now() / 1000;
         const rotYAngle = time * BASE_ROTATION_SPEED * 6;
 
@@ -166,8 +174,8 @@ export default function ParticleBall() {
           const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
           const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
 
-          p.explodeX = cx + rotated.x * SPHERE_RADIUS + floatX;
-          p.explodeY = cy + rotated.y * SPHERE_RADIUS + floatY;
+          p.explodeX = bounce.x + rotated.x * SPHERE_RADIUS + floatX;
+          p.explodeY = bounce.y + rotated.y * SPHERE_RADIUS + floatY;
 
           const dx = rotated.x;
           const dy = rotated.y;
@@ -218,8 +226,22 @@ export default function ParticleBall() {
       const time = timestamp / 1000;
       const rotYAngle = time * BASE_ROTATION_SPEED * 6;
 
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
+      // Update bounce position (only while sphere is active)
+      if (!explodeTime) {
+        const dt = lastBounceTime ? (timestamp - lastBounceTime) : 16;
+        lastBounceTime = timestamp;
+        bounce.x += bounce.vx * dt * 0.06;
+        bounce.y += bounce.vy * dt * 0.06;
+
+        const margin = SPHERE_RADIUS + FLOAT_AMPLITUDE;
+        if (bounce.x - margin < 0) { bounce.x = margin; bounce.vx = Math.abs(bounce.vx); }
+        if (bounce.x + margin > canvas.width) { bounce.x = canvas.width - margin; bounce.vx = -Math.abs(bounce.vx); }
+        if (bounce.y - margin < 0) { bounce.y = margin; bounce.vy = Math.abs(bounce.vy); }
+        if (bounce.y + margin > canvas.height) { bounce.y = canvas.height - margin; bounce.vy = -Math.abs(bounce.vy); }
+      }
+
+      const cx = bounce.x;
+      const cy = bounce.y;
 
       ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -322,25 +344,25 @@ export default function ParticleBall() {
           const shimmer1 = Math.sin(time * 3.5 + pt.index * 0.5) * 0.5 + 0.5;
           const shimmer2 = Math.sin(time * 5.0 + pt.index * 0.3 + 2.0) * 0.5 + 0.5;
           const wave = Math.sin(time * 2.0 + pt.x * 0.01 + pt.y * 0.005) * 0.5 + 0.5;
-          const colorType = (pt.index * 7 + Math.floor(shimmer2 * 3)) % 3;
+          const colorType = (pt.index * 7 + Math.floor(shimmer2 * 5)) % 5;
           let r, g, b;
-          if (colorType === 0) {
-            // Blue
-            r = 60 + Math.floor(shimmer1 * 50);
-            g = 120 + Math.floor(shimmer1 * 60 + wave * 30);
-            b = 220 + Math.floor(shimmer1 * 35);
-          } else if (colorType === 1) {
-            // White
+          if (colorType <= 2) {
+            // Blue (3 out of 5 — dominant)
+            r = 30 + Math.floor(shimmer1 * 40);
+            g = 80 + Math.floor(shimmer1 * 50 + wave * 20);
+            b = 200 + Math.floor(shimmer1 * 55);
+          } else if (colorType === 3) {
+            // White with blue tint
             const w = 200 + Math.floor(shimmer1 * 55);
-            r = w;
-            g = w;
-            b = w + Math.floor(shimmer2 * 15);
+            r = w - 30;
+            g = w - 10;
+            b = w + Math.floor(shimmer2 * 20);
           } else {
-            // Silver
-            const s = 160 + Math.floor(shimmer1 * 60 + wave * 25);
-            r = s - Math.floor(shimmer2 * 10);
-            g = s;
-            b = s + Math.floor(shimmer2 * 20);
+            // Silver with blue shift
+            const s = 150 + Math.floor(shimmer1 * 50 + wave * 20);
+            r = s - Math.floor(shimmer2 * 30) - 20;
+            g = s - Math.floor(shimmer2 * 10);
+            b = s + Math.floor(shimmer2 * 40) + 30;
           }
           ctx.fillStyle = `rgb(${r},${g},${b})`;
         } else {
@@ -380,7 +402,7 @@ export default function ParticleBall() {
             const intensity = (sparkle - 0.4) * 2.5 * pt.alpha;
             ctx.beginPath();
             ctx.arc(pt.x, pt.y, pt.size * 0.6, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(220, 235, 255, ${Math.min(intensity, 1)})`;
+            ctx.fillStyle = `rgba(150, 200, 255, ${Math.min(intensity, 1)})`;
             ctx.fill();
           }
           if (sparkle > 0.7) {
