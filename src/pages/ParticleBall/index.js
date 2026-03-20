@@ -11,7 +11,7 @@ const FORM_TEXT_DELAY = 400;
 const FORM_TEXT_DURATION = 2000;
 const FLOAT_AMPLITUDE = 8;
 const FLOAT_SPEED = 0.4;
-const BOUNCE_SPEED = 1.5;
+const BOUNCE_SPEED = 0.6;
 
 function fibonacci(count) {
   const points = [];
@@ -132,7 +132,7 @@ export default function ParticleBall() {
       if (!explodeTime) {
         explodeTime = performance.now();
         const time = performance.now() / 1000;
-        const rotYAngle = time * BASE_ROTATION_SPEED * 6;
+        const rotYAngle = time * BASE_ROTATION_SPEED * 40;
 
         for (const p of particles) {
           let rotated = rotateY(p.target, rotYAngle);
@@ -191,7 +191,8 @@ export default function ParticleBall() {
       const easedProgress = easeOutSine(progress);
 
       const time = timestamp / 1000;
-      const rotYAngle = time * BASE_ROTATION_SPEED * 6;
+      const rotSpeed = progress >= 1 && !explodeTime ? BASE_ROTATION_SPEED * 40 : BASE_ROTATION_SPEED * 6;
+      const rotYAngle = time * rotSpeed;
 
       // Update bounce position (only after fully formed, before explode)
       if (!explodeTime && progress >= 1) {
