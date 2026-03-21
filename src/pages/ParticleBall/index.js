@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 
-const PARTICLE_COUNT = 1400;
-const SPHERE_RADIUS = 180;
+const PARTICLE_COUNT = 4000;
+const SPHERE_RADIUS = 140;
 const INTRO_DURATION = 12000;
 const BASE_ROTATION_SPEED = 0.0008;
 const AXIAL_TILT = 23.4 * (Math.PI / 180);
@@ -35,9 +35,9 @@ function sample3DText(lines, count, canvasWidth, canvasHeight) {
   offscreen.height = canvasHeight;
   const octx = offscreen.getContext('2d');
 
-  const fontSize1 = Math.floor(64 * scale);
-  const fontSize2 = Math.floor(36 * scale);
-  const gap = 30 * scale;
+  const fontSize1 = Math.floor(90 * scale);
+  const fontSize2 = Math.floor(48 * scale);
+  const gap = 40 * scale;
 
   // Draw line 1 (Virtual Canvas)
   octx.font = `bold ${fontSize1}px Arial, sans-serif`;
@@ -68,7 +68,7 @@ function sample3DText(lines, count, canvasWidth, canvasHeight) {
 
   const points = [];
   if (candidates.length === 0) return points;
-  const textDepth = 0.3;
+  const textDepth = 0.08;
   for (let i = 0; i < count; i++) {
     const c = candidates[Math.floor(Math.random() * candidates.length)];
     const px = c.x + (Math.random() - 0.5) * step;
@@ -82,7 +82,7 @@ function sample3DText(lines, count, canvasWidth, canvasHeight) {
   return points;
 }
 
-const TEXT_SCALE = 350;
+const TEXT_SCALE = 450;
 
 function getParticleColor(normalizedZ, time, index, isGrey) {
   const shimmer = Math.sin(time * 2.5 + index * 0.4) * 0.5 + 0.5;
@@ -282,7 +282,7 @@ export default function ParticleBall() {
 
         if (formTextTime && p.textTarget) {
           const easedForm = easeOutCubic(formProgress);
-          const textRotAngle = time * 0.3;
+          const textRotAngle = time * 0.15;
           const tr = rotateY(p.textTarget, textRotAngle);
           const tx = canvas.width / 2 + tr.x * TEXT_SCALE;
           const ty = canvas.height / 2 + tr.y * TEXT_SCALE;
@@ -290,7 +290,7 @@ export default function ParticleBall() {
           drawY = p.explodedFinalY + (ty - p.explodedFinalY) * easedForm;
           const depthScale = (tr.z + 1.5) / 2.5;
           drawAlpha = (0.15 + easedForm * 0.85) * (0.4 + depthScale * 0.6);
-          drawSize = (0.3 + easedForm * 0.3) * (0.5 + depthScale * 0.5);
+          drawSize = (0.8 + easedForm * 0.4) * (0.5 + depthScale * 0.5);
         } else if (explodeTime) {
           const eased = easeOutCubic(explodeProgress);
           drawX = p.explodeX + p.explodeVx * eased * 120;
