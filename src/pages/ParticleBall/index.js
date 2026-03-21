@@ -11,7 +11,6 @@ const FORM_TEXT_DELAY = 400;
 const FORM_TEXT_DURATION = 2000;
 const FLOAT_AMPLITUDE = 8;
 const FLOAT_SPEED = 0.4;
-const BOUNCE_SPEED = 0.15;
 
 function fibonacci(count) {
   const points = [];
@@ -97,15 +96,15 @@ function getParticleColor(normalizedZ, time, index, isGrey) {
   const facet = Math.sin(time * 1.2 + index * 0.7) * 0.5 + 0.5;
 
   if (facet > 0.5) {
-    const r = 180 + Math.floor(shimmer * 75);
-    const g = 200 + Math.floor(shimmer * 55);
-    const b = 220 + Math.floor(shimmer * 35);
+    const r = 120 + Math.floor(shimmer * 60);
+    const g = 180 + Math.floor(shimmer * 55);
+    const b = 240 + Math.floor(shimmer * 15);
     return `rgb(${r},${g},${b})`;
   }
   const depth = (normalizedZ + 1) / 2;
-  const r = 10 + Math.floor(depth * 30);
-  const g = 15 + Math.floor(depth * 50 + shimmer * 30);
-  const b = 60 + Math.floor(depth * 120 + shimmer * 40);
+  const r = 10 + Math.floor(depth * 20);
+  const g = 30 + Math.floor(depth * 60 + shimmer * 30);
+  const b = 120 + Math.floor(depth * 135);
   return `rgb(${r},${g},${b})`;
 }
 
@@ -152,14 +151,11 @@ export default function ParticleBall() {
       };
     });
 
-    // Bouncing ball state
-    const bounce = {
+    // Ball stays centered
+    const center = {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
-      vx: BOUNCE_SPEED * (Math.random() > 0.5 ? 1 : -1),
-      vy: BOUNCE_SPEED * (Math.random() > 0.5 ? 0.7 : -0.7),
     };
-    let lastBounceTime = null;
 
     function resize() {
       canvas.width = window.innerWidth;
@@ -181,8 +177,8 @@ export default function ParticleBall() {
           const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
           const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
 
-          p.explodeX = bounce.x + rotated.x * SPHERE_RADIUS + floatX;
-          p.explodeY = bounce.y + rotated.y * SPHERE_RADIUS + floatY;
+          p.explodeX = center.x + rotated.x * SPHERE_RADIUS + floatX;
+          p.explodeY = center.y + rotated.y * SPHERE_RADIUS + floatY;
 
           const dx = rotated.x;
           const dy = rotated.y;
@@ -234,22 +230,12 @@ export default function ParticleBall() {
       const rotSpeed = progress >= 1 && !explodeTime ? BASE_ROTATION_SPEED * 40 : BASE_ROTATION_SPEED * 6;
       const rotYAngle = time * rotSpeed;
 
-      // Update bounce position (only after fully formed, before explode)
-      if (!explodeTime && progress >= 1) {
-        const dt = lastBounceTime ? (timestamp - lastBounceTime) : 16;
-        lastBounceTime = timestamp;
-        bounce.x += bounce.vx * dt * 0.06;
-        bounce.y += bounce.vy * dt * 0.06;
+      // Update center on resize
+      center.x = canvas.width / 2;
+      center.y = canvas.height / 2;
 
-        const margin = SPHERE_RADIUS + FLOAT_AMPLITUDE;
-        if (bounce.x - margin < 0) { bounce.x = margin; bounce.vx = Math.abs(bounce.vx); }
-        if (bounce.x + margin > canvas.width) { bounce.x = canvas.width - margin; bounce.vx = -Math.abs(bounce.vx); }
-        if (bounce.y - margin < 0) { bounce.y = margin; bounce.vy = Math.abs(bounce.vy); }
-        if (bounce.y + margin > canvas.height) { bounce.y = canvas.height - margin; bounce.vy = -Math.abs(bounce.vy); }
-      }
-
-      const cx = bounce.x;
-      const cy = bounce.y;
+      const cx = center.x;
+      const cy = center.y;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -304,13 +290,13 @@ export default function ParticleBall() {
           drawY = p.explodedFinalY + (ty - p.explodedFinalY) * easedForm;
           const depthScale = (tr.z + 1.5) / 2.5;
           drawAlpha = (0.15 + easedForm * 0.85) * (0.4 + depthScale * 0.6);
-          drawSize = (0.6 + easedForm * 0.6) * (0.5 + depthScale * 0.5);
+          drawSize = (0.3 + easedForm * 0.3) * (0.5 + depthScale * 0.5);
         } else if (explodeTime) {
           const eased = easeOutCubic(explodeProgress);
           drawX = p.explodeX + p.explodeVx * eased * 120;
           drawY = p.explodeY + p.explodeVy * eased * 120;
           const depthScale = (rotated.z + 1.5) / 2.5;
-          const baseSize = (0.3 + depthScale * 0.9) * (0.3 + easedProgress * 0.7);
+          const baseSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
           const baseAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
           drawSize = baseSize * (1 - explodeProgress * 0.6);
           drawAlpha = baseAlpha * Math.max(0.15, 1 - explodeProgress * 0.85);
@@ -318,7 +304,7 @@ export default function ParticleBall() {
           drawX = p.startX + (worldX - p.startX) * easedProgress;
           drawY = p.startY + (worldY - p.startY) * easedProgress;
           const depthScale = (rotated.z + 1.5) / 2.5;
-          drawSize = (0.3 + depthScale * 0.9) * (0.3 + easedProgress * 0.7);
+          drawSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
           drawAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
         }
 
@@ -347,10 +333,10 @@ export default function ParticleBall() {
           const colorType = (pt.index * 7 + Math.floor(shimmer2 * 5)) % 5;
           let r, g, b;
           if (colorType <= 2) {
-            // Blue (dominant)
-            r = 30 + Math.floor(shimmer1 * 40);
-            g = 80 + Math.floor(shimmer1 * 50 + wave * 20);
-            b = 200 + Math.floor(shimmer1 * 55);
+            // Blue (dominant) — brighter
+            r = 40 + Math.floor(shimmer1 * 50);
+            g = 120 + Math.floor(shimmer1 * 60 + wave * 25);
+            b = 230 + Math.floor(shimmer1 * 25);
           } else if (colorType === 3) {
             // White with blue tint
             const w = 200 + Math.floor(shimmer1 * 55);
