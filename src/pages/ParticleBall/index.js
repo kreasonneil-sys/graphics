@@ -8,27 +8,78 @@ const AXIAL_TILT = 23.4 * (Math.PI / 180);
 const GREY_RATIO = 0.18;
 const EXPLODE_DURATION = 800;
 const FORM_AFRICA_DELAY = 400;
-const FORM_AFRICA_DURATION = 3000;
+const FORM_AFRICA_DURATION = 2500;
 const FLOAT_AMPLITUDE = 8;
 const FLOAT_SPEED = 0.4;
-const AFRICA_SCALE = 280;
+const AFRICA_SCALE = 300;
 const STAR_DRAW_DURATION = 2500;
+const WALL_THICKNESS = 0.6; // z-depth spread for the wall (thick from side)
+const Z_LAYERS = 50; // number of z-layers for solid side view
 
-// Africa continent outline — normalized coordinates centered at (0,0)
+// Detailed Africa continent outline — normalized [-1,1] centered at (0,0)
 const AFRICA_OUTLINE = [
-  [0.05, -0.95], [0.15, -0.92], [0.35, -0.88], [0.45, -0.82],
-  [0.50, -0.75], [0.52, -0.65], [0.48, -0.55], [0.55, -0.48],
-  [0.60, -0.40], [0.62, -0.30], [0.58, -0.20], [0.55, -0.10],
-  [0.58, 0.00], [0.62, 0.05], [0.60, 0.15], [0.55, 0.25],
-  [0.50, 0.35], [0.45, 0.42], [0.42, 0.50], [0.38, 0.55],
-  [0.35, 0.62], [0.30, 0.70], [0.25, 0.78], [0.18, 0.85],
-  [0.10, 0.90], [0.05, 0.92], [-0.02, 0.88], [-0.08, 0.80],
-  [-0.12, 0.70], [-0.15, 0.60], [-0.18, 0.50], [-0.22, 0.40],
-  [-0.25, 0.30], [-0.28, 0.20], [-0.30, 0.10], [-0.32, 0.00],
-  [-0.35, -0.10], [-0.38, -0.18], [-0.42, -0.25], [-0.48, -0.30],
-  [-0.50, -0.35], [-0.48, -0.42], [-0.42, -0.48], [-0.38, -0.55],
-  [-0.32, -0.60], [-0.25, -0.65], [-0.20, -0.72], [-0.15, -0.78],
-  [-0.10, -0.85], [-0.05, -0.90], [0.00, -0.93], [0.05, -0.95],
+  // North Africa — Mediterranean coast
+  [0.02, -0.95], [0.08, -0.94], [0.14, -0.93], [0.20, -0.91],
+  [0.28, -0.90], [0.34, -0.88], [0.38, -0.86], [0.42, -0.84],
+  [0.45, -0.81], [0.48, -0.78], [0.50, -0.75],
+  // Tunisia / Libya bulge
+  [0.52, -0.72], [0.53, -0.68], [0.51, -0.64], [0.50, -0.60],
+  // Egypt — Nile delta
+  [0.52, -0.56], [0.55, -0.52], [0.56, -0.48],
+  // Sinai bump
+  [0.58, -0.45], [0.56, -0.42],
+  // Red Sea coast
+  [0.54, -0.38], [0.52, -0.34], [0.50, -0.30],
+  // Horn of Africa approach
+  [0.52, -0.26], [0.55, -0.22], [0.58, -0.18],
+  [0.60, -0.14], [0.62, -0.10], [0.63, -0.06],
+  // Horn of Africa — Somalia
+  [0.65, -0.02], [0.66, 0.02], [0.64, 0.06],
+  [0.60, 0.08], [0.56, 0.10], [0.52, 0.11],
+  // East Africa coast
+  [0.50, 0.14], [0.48, 0.18], [0.47, 0.22],
+  [0.46, 0.26], [0.45, 0.30], [0.44, 0.34],
+  // Tanzania
+  [0.46, 0.38], [0.45, 0.42], [0.43, 0.46],
+  // Mozambique
+  [0.42, 0.50], [0.40, 0.54], [0.38, 0.58],
+  [0.36, 0.62], [0.34, 0.66],
+  // Madagascar gap / South Africa approach
+  [0.30, 0.70], [0.26, 0.74], [0.22, 0.78],
+  [0.18, 0.82], [0.14, 0.85],
+  // South Africa — Cape
+  [0.10, 0.87], [0.06, 0.89], [0.02, 0.90],
+  [-0.02, 0.90], [-0.06, 0.88], [-0.10, 0.85],
+  [-0.12, 0.82],
+  // West South Africa
+  [-0.14, 0.78], [-0.16, 0.74], [-0.18, 0.70],
+  // Namibia / Angola coast
+  [-0.20, 0.65], [-0.22, 0.60], [-0.23, 0.55],
+  [-0.24, 0.50], [-0.25, 0.45], [-0.26, 0.40],
+  // Congo / Gabon
+  [-0.28, 0.35], [-0.30, 0.30], [-0.32, 0.25],
+  [-0.33, 0.20], [-0.34, 0.15],
+  // Gulf of Guinea — inward curve
+  [-0.36, 0.10], [-0.38, 0.06], [-0.40, 0.02],
+  [-0.42, -0.02], [-0.44, -0.06],
+  // Nigeria / Cameroon bulge
+  [-0.45, -0.10], [-0.46, -0.14], [-0.44, -0.18],
+  [-0.42, -0.22], [-0.40, -0.26],
+  // West Africa bulge out
+  [-0.42, -0.30], [-0.46, -0.33], [-0.50, -0.35],
+  [-0.52, -0.38], [-0.54, -0.40],
+  // Senegal / Gambia
+  [-0.55, -0.44], [-0.53, -0.48], [-0.50, -0.50],
+  [-0.48, -0.52], [-0.50, -0.55],
+  // Mauritania coast
+  [-0.48, -0.58], [-0.44, -0.62], [-0.40, -0.66],
+  [-0.36, -0.70], [-0.32, -0.74],
+  // Western Sahara / Morocco
+  [-0.28, -0.78], [-0.24, -0.82], [-0.20, -0.85],
+  [-0.16, -0.88], [-0.12, -0.90],
+  // Back to top — Morocco / Algeria
+  [-0.08, -0.92], [-0.04, -0.94], [0.00, -0.95],
+  [0.02, -0.95],
 ];
 
 function fibonacci(count) {
@@ -44,83 +95,6 @@ function fibonacci(count) {
       z: Math.sin(theta) * radiusAtY,
     });
   }
-  return points;
-}
-
-function sampleAfricaShape(count) {
-  const points = [];
-  const outline = AFRICA_OUTLINE;
-  const totalLen = outline.length;
-
-  // Calculate total perimeter length for even distribution
-  const segLengths = [];
-  let totalPerimeter = 0;
-  for (let i = 0; i < totalLen; i++) {
-    const next = (i + 1) % totalLen;
-    const dx = outline[next][0] - outline[i][0];
-    const dy = outline[next][1] - outline[i][1];
-    const len = Math.sqrt(dx * dx + dy * dy);
-    segLengths.push(len);
-    totalPerimeter += len;
-  }
-
-  // 70% on edges (shell wall), 30% slightly inside edges for density
-  const edgeCount = Math.floor(count * 0.7);
-  const nearEdgeCount = count - edgeCount;
-
-  // Sample edge points evenly along perimeter
-  for (let i = 0; i < edgeCount; i++) {
-    const targetDist = (i / edgeCount) * totalPerimeter + Math.random() * (totalPerimeter / edgeCount) * 0.8;
-    let accum = 0;
-    let segIdx = 0;
-    let dist = targetDist % totalPerimeter;
-    for (let s = 0; s < totalLen; s++) {
-      if (accum + segLengths[s] >= dist) {
-        segIdx = s;
-        break;
-      }
-      accum += segLengths[s];
-    }
-    const t = (dist - accum) / segLengths[segIdx];
-    const next = (segIdx + 1) % totalLen;
-    const px = outline[segIdx][0] + (outline[next][0] - outline[segIdx][0]) * t;
-    const py = outline[segIdx][1] + (outline[next][1] - outline[segIdx][1]) * t;
-
-    // Compute normal for slight thickness
-    const nx = outline[next][1] - outline[segIdx][1];
-    const ny = -(outline[next][0] - outline[segIdx][0]);
-    const nMag = Math.sqrt(nx * nx + ny * ny) || 1;
-    const thickness = (Math.random() - 0.5) * 0.03;
-
-    points.push({
-      x: px + (nx / nMag) * thickness,
-      y: py + (ny / nMag) * thickness,
-      z: 0,
-      edgeDist: i / edgeCount, // 0-1 along the perimeter for star drawing
-    });
-  }
-
-  // Near-edge points — slightly offset inward for wall density
-  for (let i = 0; i < nearEdgeCount; i++) {
-    const segIdx = Math.floor(Math.random() * totalLen);
-    const next = (segIdx + 1) % totalLen;
-    const t = Math.random();
-    const px = outline[segIdx][0] + (outline[next][0] - outline[segIdx][0]) * t;
-    const py = outline[segIdx][1] + (outline[next][1] - outline[segIdx][1]) * t;
-
-    const nx = outline[next][1] - outline[segIdx][1];
-    const ny = -(outline[next][0] - outline[segIdx][0]);
-    const nMag = Math.sqrt(nx * nx + ny * ny) || 1;
-    const offset = (Math.random() * 0.06 + 0.01) * (Math.random() < 0.5 ? 1 : -1);
-
-    points.push({
-      x: px + (nx / nMag) * offset,
-      y: py + (ny / nMag) * offset,
-      z: 0,
-      edgeDist: (segIdx + t) / totalLen,
-    });
-  }
-
   return points;
 }
 
@@ -148,6 +122,16 @@ function getParticleColor(normalizedZ, time, index, isGrey) {
   return `rgb(${r},${g},${b})`;
 }
 
+function rotateYPt(point, angle) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    x: point.x * cos + point.z * sin,
+    y: point.y,
+    z: -point.x * sin + point.z * cos,
+  };
+}
+
 export default function ParticleBall() {
   const canvasRef = useRef(null);
 
@@ -158,7 +142,6 @@ export default function ParticleBall() {
     let startTime = null;
     let explodeTime = null;
     let formAfricaTime = null;
-    let africaPoints = null;
     let starDrawStart = null;
 
     const spherePoints = fibonacci(PARTICLE_COUNT);
@@ -186,10 +169,8 @@ export default function ParticleBall() {
         explodeVy: 0,
         explodeX: 0,
         explodeY: 0,
-        africaTarget: null,
         explodedFinalX: 0,
         explodedFinalY: 0,
-        edgeDist: 0,
       };
     });
 
@@ -212,7 +193,7 @@ export default function ParticleBall() {
         const rotYAngle = time * BASE_ROTATION_SPEED * 40;
 
         for (const p of particles) {
-          let rotated = rotateY(p.target, rotYAngle);
+          let rotated = rotateYPt(p.target, rotYAngle);
           rotated = rotateZ(rotated, AXIAL_TILT);
 
           const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
@@ -228,19 +209,15 @@ export default function ParticleBall() {
           const speed = 4 + Math.random() * 6;
           p.explodeVx = (dx / mag) * speed + (Math.random() - 0.5) * 3;
           p.explodeVy = (dy / mag) * speed + (Math.random() - 0.5) * 3;
+          p.explodedFinalX = p.explodeX + p.explodeVx * 120;
+          p.explodedFinalY = p.explodeY + p.explodeVy * 120;
         }
       }
     }
     canvas.addEventListener('click', handleClick);
 
     function rotateY(point, angle) {
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
-      return {
-        x: point.x * cos + point.z * sin,
-        y: point.y,
-        z: -point.x * sin + point.z * cos,
-      };
+      return rotateYPt(point, angle);
     }
 
     function rotateZ(point, angle) {
@@ -259,6 +236,53 @@ export default function ParticleBall() {
 
     function easeOutCubic(t) {
       return 1 - Math.pow(1 - t, 3);
+    }
+
+    // Draw a single z-layer of the Africa outline as a solid line
+    function drawAfricaLayer(rotAngle, zOffset, alpha, lineWidth, revealFraction, time) {
+      const outline = AFRICA_OUTLINE;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      // How many points to draw based on reveal
+      const pointsToDraw = Math.max(2, Math.floor(outline.length * revealFraction));
+
+      // Transform each outline point through 3D rotation
+      const screenPts = [];
+      for (let i = 0; i < pointsToDraw; i++) {
+        const pt = { x: outline[i][0], y: outline[i][1], z: zOffset };
+        const r = rotateYPt(pt, rotAngle);
+        screenPts.push({
+          sx: cx + r.x * AFRICA_SCALE,
+          sy: cy + r.y * AFRICA_SCALE,
+          z: r.z,
+        });
+      }
+
+      if (screenPts.length < 2) return;
+
+      // Bright green with shimmer per layer
+      const shimmer = Math.sin(time * 3.0 + zOffset * 20) * 0.15 + 0.85;
+      const g = Math.floor(200 * shimmer + 55);
+      const r = Math.floor(20 * shimmer + 10);
+      const b = Math.floor(30 * shimmer + 15);
+
+      ctx.globalAlpha = alpha * shimmer;
+      ctx.strokeStyle = `rgb(${r},${g},${b})`;
+      ctx.lineWidth = lineWidth;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(screenPts[0].sx, screenPts[0].sy);
+      for (let i = 1; i < screenPts.length; i++) {
+        ctx.lineTo(screenPts[i].sx, screenPts[i].sy);
+      }
+      // Close the path if fully revealed
+      if (revealFraction >= 1) {
+        ctx.closePath();
+      }
+      ctx.stroke();
     }
 
     function render(timestamp) {
@@ -289,16 +313,6 @@ export default function ParticleBall() {
         if (timestamp - (explodeTime + EXPLODE_DURATION) >= FORM_AFRICA_DELAY) {
           formAfricaTime = timestamp;
           starDrawStart = timestamp;
-          africaPoints = sampleAfricaShape(PARTICLE_COUNT);
-          for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
-            p.explodedFinalX = p.explodeX + p.explodeVx * 120;
-            p.explodedFinalY = p.explodeY + p.explodeVy * 120;
-            if (i < africaPoints.length) {
-              p.africaTarget = africaPoints[i];
-              p.edgeDist = africaPoints[i].edgeDist;
-            }
-          }
         }
       }
 
@@ -307,154 +321,143 @@ export default function ParticleBall() {
         formProgress = Math.min((timestamp - formAfricaTime) / FORM_AFRICA_DURATION, 1);
       }
 
-      // Star drawing progress (star traces the outline)
       let starProgress = 0;
       if (starDrawStart) {
         starProgress = Math.min((timestamp - starDrawStart) / STAR_DRAW_DURATION, 1);
       }
 
-      const projected = [];
+      // === Draw ball particles (pre-Africa phase) ===
+      if (!formAfricaTime || formProgress < 1) {
+        const projected = [];
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        let rotated = rotateY(p.target, rotYAngle);
-        rotated = rotateZ(rotated, AXIAL_TILT);
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          let rotated = rotateY(p.target, rotYAngle);
+          rotated = rotateZ(rotated, AXIAL_TILT);
 
-        const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
-        const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
+          const floatY = Math.sin(time * FLOAT_SPEED + p.floatOffset) * FLOAT_AMPLITUDE;
+          const floatX = Math.cos(time * FLOAT_SPEED * 0.7 + p.floatOffset + 1.5) * FLOAT_AMPLITUDE * 0.5;
 
-        const worldX = cx + rotated.x * SPHERE_RADIUS + floatX * easedProgress;
-        const worldY = cy + rotated.y * SPHERE_RADIUS + floatY * easedProgress;
+          const worldX = cx + rotated.x * SPHERE_RADIUS + floatX * easedProgress;
+          const worldY = cy + rotated.y * SPHERE_RADIUS + floatY * easedProgress;
 
-        let drawX, drawY, drawAlpha, drawSize;
+          let drawX, drawY, drawAlpha, drawSize;
 
-        if (formAfricaTime && p.africaTarget) {
-          const easedForm = easeOutCubic(formProgress);
-          // Rotate Africa continuously
-          const africaRotAngle = time * 0.4;
-          const ar = rotateY(p.africaTarget, africaRotAngle);
-          const ax = canvas.width / 2 + ar.x * AFRICA_SCALE;
-          const ay = canvas.height / 2 + ar.y * AFRICA_SCALE;
-          drawX = p.explodedFinalX + (ax - p.explodedFinalX) * easedForm;
-          drawY = p.explodedFinalY + (ay - p.explodedFinalY) * easedForm;
-
-          // Transparent from front (z near 0), solid from side (z spread)
-          // Use absolute z for alpha — front-facing particles are faint, side ones are solid
-          const absZ = Math.abs(ar.z);
-          const frontAlpha = 0.08 + absZ * 0.92; // near 0 at front, ~1 at sides
-          drawAlpha = (0.1 + easedForm * 0.9) * frontAlpha;
-
-          // Star drawing reveal — particles appear as star passes
-          const particleEdge = p.edgeDist;
-          if (starProgress < 1) {
-            const revealWindow = 0.15;
-            const dist = particleEdge - starProgress;
-            const wrapped = dist < -0.5 ? dist + 1 : dist > 0.5 ? dist - 1 : dist;
-            if (wrapped > revealWindow) {
-              drawAlpha = 0;
-            } else if (wrapped > 0) {
-              drawAlpha *= (1 - wrapped / revealWindow) * 0.5;
-            }
+          if (formAfricaTime) {
+            // Fade out particles as Africa forms
+            const fadeOut = 1 - formProgress;
+            drawX = p.explodedFinalX;
+            drawY = p.explodedFinalY;
+            const depthScale = (rotated.z + 1.5) / 2.5;
+            drawSize = (0.15 + depthScale * 0.45) * 0.4;
+            drawAlpha = fadeOut * 0.3;
+          } else if (explodeTime) {
+            const eased = easeOutCubic(explodeProgress);
+            drawX = p.explodeX + p.explodeVx * eased * 120;
+            drawY = p.explodeY + p.explodeVy * eased * 120;
+            const depthScale = (rotated.z + 1.5) / 2.5;
+            const baseSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
+            const baseAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
+            drawSize = baseSize * (1 - explodeProgress * 0.6);
+            drawAlpha = baseAlpha * Math.max(0.15, 1 - explodeProgress * 0.85);
+          } else {
+            drawX = p.startX + (worldX - p.startX) * easedProgress;
+            drawY = p.startY + (worldY - p.startY) * easedProgress;
+            const depthScale = (rotated.z + 1.5) / 2.5;
+            drawSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
+            drawAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
           }
 
-          drawSize = (0.6 + easedForm * 0.5) * (0.4 + absZ * 0.6);
-        } else if (explodeTime) {
-          const eased = easeOutCubic(explodeProgress);
-          drawX = p.explodeX + p.explodeVx * eased * 120;
-          drawY = p.explodeY + p.explodeVy * eased * 120;
-          const depthScale = (rotated.z + 1.5) / 2.5;
-          const baseSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
-          const baseAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
-          drawSize = baseSize * (1 - explodeProgress * 0.6);
-          drawAlpha = baseAlpha * Math.max(0.15, 1 - explodeProgress * 0.85);
-        } else {
-          drawX = p.startX + (worldX - p.startX) * easedProgress;
-          drawY = p.startY + (worldY - p.startY) * easedProgress;
-          const depthScale = (rotated.z + 1.5) / 2.5;
-          drawSize = (0.15 + depthScale * 0.45) * (0.3 + easedProgress * 0.7);
-          drawAlpha = (0.3 + depthScale * 0.7) * (0.2 + easedProgress * 0.8);
+          projected.push({
+            x: drawX, y: drawY, z: rotated.z,
+            size: drawSize, alpha: drawAlpha,
+            index: i, isGrey: p.isGrey,
+          });
         }
 
-        projected.push({
-          x: drawX,
-          y: drawY,
-          z: rotated.z,
-          size: drawSize,
-          alpha: drawAlpha,
-          index: i,
-          isGrey: p.isGrey,
-          hasAfrica: !!p.africaTarget,
-          edgeDist: p.edgeDist,
-        });
-      }
+        projected.sort((a, b) => a.z - b.z);
 
-      projected.sort((a, b) => a.z - b.z);
-
-      for (const pt of projected) {
-        if (pt.alpha <= 0.01) continue;
-        ctx.globalAlpha = pt.alpha;
-
-        if (formAfricaTime && pt.hasAfrica && formProgress > 0.05) {
-          // Bright green with shimmer
-          const shimmer = Math.sin(time * 4.0 + pt.index * 0.3) * 0.5 + 0.5;
-          const wave = Math.sin(time * 2.5 + pt.x * 0.008 + pt.y * 0.005) * 0.5 + 0.5;
-          const r = 10 + Math.floor(shimmer * 30 + wave * 15);
-          const g = 180 + Math.floor(shimmer * 75);
-          const b = 20 + Math.floor(shimmer * 25 + wave * 10);
-          ctx.fillStyle = `rgb(${r},${g},${b})`;
-        } else {
+        for (const pt of projected) {
+          if (pt.alpha <= 0.01) continue;
+          ctx.globalAlpha = pt.alpha;
           ctx.fillStyle = getParticleColor(pt.z, time, pt.index, pt.isGrey);
-        }
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+          ctx.fill();
 
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (!explodeTime && !formAfricaTime) {
-          if (pt.isGrey) {
-            const glint = Math.sin(time * 5 + pt.index * 0.8) * 0.5 + 0.5;
-            if (glint > 0.5) {
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, pt.size * 0.7, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.5) * 1.2})`;
-              ctx.fill();
+          if (!explodeTime && !formAfricaTime) {
+            if (pt.isGrey) {
+              const glint = Math.sin(time * 5 + pt.index * 0.8) * 0.5 + 0.5;
+              if (glint > 0.5) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.5) * 1.2})`;
+                ctx.fill();
+              }
+            } else if (pt.z > 0.2) {
+              const glint = Math.sin(time * 4 + pt.index * 1.3) * 0.5 + 0.5;
+              if (glint > 0.7) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.7) * 2})`;
+                ctx.fill();
+              }
             }
-          } else if (pt.z > 0.2) {
-            const glint = Math.sin(time * 4 + pt.index * 1.3) * 0.5 + 0.5;
-            if (glint > 0.7) {
-              ctx.beginPath();
-              ctx.arc(pt.x, pt.y, pt.size * 0.5, 0, Math.PI * 2);
-              ctx.fillStyle = `rgba(255, 255, 255, ${(glint - 0.7) * 2})`;
-              ctx.fill();
-            }
-          }
-        }
-
-        // Green glow shimmer on Africa particles
-        if (formAfricaTime && pt.hasAfrica && formProgress > 0.3) {
-          const wave = Math.sin(time * 3.0 - pt.x * 0.012 + pt.y * 0.006) * 0.5 + 0.5;
-          const glint = Math.sin(time * 6 + pt.index * 0.5) * 0.5 + 0.5;
-          const sparkle = wave * glint;
-          if (sparkle > 0.4) {
-            const intensity = (sparkle - 0.4) * 2.5 * pt.alpha;
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, pt.size * 0.7, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(100, 255, 120, ${Math.min(intensity, 1)})`;
-            ctx.fill();
-          }
-          if (sparkle > 0.7) {
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, pt.size * 0.35, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(220, 255, 220, ${(sparkle - 0.7) * 3 * pt.alpha})`;
-            ctx.fill();
           }
         }
       }
 
-      // Draw the glimmering star tracer
+      // === Draw 3D Africa as solid lines across many z-layers ===
+      if (formAfricaTime && formProgress > 0) {
+        const africaRotAngle = time * 0.4;
+        const easedForm = easeOutCubic(formProgress);
+        const revealFraction = Math.min(starProgress * 1.1, 1);
+
+        // Sort layers back-to-front based on rotation
+        const layers = [];
+        for (let l = 0; l < Z_LAYERS; l++) {
+          const zNorm = (l / (Z_LAYERS - 1)) - 0.5; // -0.5 to 0.5
+          const zOffset = zNorm * WALL_THICKNESS;
+          // Get the rotated z to determine draw order
+          const testPt = rotateYPt({ x: 0, y: 0, z: zOffset }, africaRotAngle);
+          layers.push({ zOffset, rotatedZ: testPt.z, layerIdx: l });
+        }
+        layers.sort((a, b) => a.rotatedZ - b.rotatedZ);
+
+        // Calculate facing angle for alpha
+        const cosAngle = Math.abs(Math.cos(africaRotAngle));
+        // Front view: cosAngle~1 → transparent. Side view: cosAngle~0 → solid
+        const frontFade = 1 - cosAngle * 0.85;
+
+        for (const layer of layers) {
+          const layerAlpha = easedForm * frontFade;
+          // Thicker line from side, thinner from front
+          const lineW = 1.5 + (1 - cosAngle) * 1.5;
+
+          drawAfricaLayer(
+            africaRotAngle,
+            layer.zOffset,
+            layerAlpha,
+            lineW,
+            revealFraction,
+            time
+          );
+        }
+
+        // Glow layer on top — brighter green outline at z=0
+        if (revealFraction > 0.1) {
+          const glowPulse = Math.sin(time * 2.5) * 0.15 + 0.85;
+          ctx.globalAlpha = easedForm * 0.3 * glowPulse * frontFade;
+          ctx.shadowColor = 'rgba(0, 255, 50, 0.8)';
+          ctx.shadowBlur = 15;
+          drawAfricaLayer(africaRotAngle, 0, easedForm * 0.5 * frontFade, 3, revealFraction, time);
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // === Glimmering star tracer ===
       if (formAfricaTime && starProgress < 1 && starProgress > 0) {
         const africaRotAngle = time * 0.4;
-        // Find star position along outline
         const outlineIdx = starProgress * (AFRICA_OUTLINE.length - 1);
         const idx0 = Math.floor(outlineIdx);
         const idx1 = Math.min(idx0 + 1, AFRICA_OUTLINE.length - 1);
@@ -462,41 +465,42 @@ export default function ParticleBall() {
         const sx = AFRICA_OUTLINE[idx0][0] + (AFRICA_OUTLINE[idx1][0] - AFRICA_OUTLINE[idx0][0]) * t;
         const sy = AFRICA_OUTLINE[idx0][1] + (AFRICA_OUTLINE[idx1][1] - AFRICA_OUTLINE[idx0][1]) * t;
 
-        const starPt = rotateY({ x: sx, y: sy, z: 0 }, africaRotAngle);
+        const starPt = rotateYPt({ x: sx, y: sy, z: 0 }, africaRotAngle);
         const starScreenX = canvas.width / 2 + starPt.x * AFRICA_SCALE;
         const starScreenY = canvas.height / 2 + starPt.y * AFRICA_SCALE;
 
-        // Star glow layers
         const pulse = Math.sin(time * 12) * 0.3 + 0.7;
-        ctx.globalAlpha = 0.15 * pulse;
-        ctx.beginPath();
-        ctx.arc(starScreenX, starScreenY, 18, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(180, 255, 180, 1)';
-        ctx.fill();
 
-        ctx.globalAlpha = 0.4 * pulse;
+        // Outer glow
+        ctx.globalAlpha = 0.2 * pulse;
         ctx.beginPath();
-        ctx.arc(starScreenX, starScreenY, 10, 0, Math.PI * 2);
+        ctx.arc(starScreenX, starScreenY, 22, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(150, 255, 150, 1)';
         ctx.fill();
 
-        ctx.globalAlpha = 0.8 * pulse;
+        ctx.globalAlpha = 0.45 * pulse;
         ctx.beginPath();
-        ctx.arc(starScreenX, starScreenY, 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(220, 255, 220, 1)';
+        ctx.arc(starScreenX, starScreenY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(100, 255, 100, 1)';
+        ctx.fill();
+
+        ctx.globalAlpha = 0.85 * pulse;
+        ctx.beginPath();
+        ctx.arc(starScreenX, starScreenY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(200, 255, 200, 1)';
         ctx.fill();
 
         ctx.globalAlpha = 1.0;
         ctx.beginPath();
-        ctx.arc(starScreenX, starScreenY, 2.5, 0, Math.PI * 2);
+        ctx.arc(starScreenX, starScreenY, 3, 0, Math.PI * 2);
         ctx.fillStyle = '#fff';
         ctx.fill();
 
-        // Star cross rays
-        ctx.globalAlpha = 0.6 * pulse;
-        ctx.strokeStyle = 'rgba(200, 255, 200, 0.8)';
-        ctx.lineWidth = 1.5;
-        const rayLen = 12 + Math.sin(time * 8) * 4;
+        // Spinning cross rays
+        ctx.globalAlpha = 0.7 * pulse;
+        ctx.strokeStyle = 'rgba(180, 255, 180, 0.9)';
+        ctx.lineWidth = 1.8;
+        const rayLen = 16 + Math.sin(time * 8) * 5;
         for (let a = 0; a < 4; a++) {
           const angle = (a * Math.PI) / 4 + time * 3;
           ctx.beginPath();
@@ -506,6 +510,26 @@ export default function ParticleBall() {
             starScreenY + Math.sin(angle) * rayLen
           );
           ctx.stroke();
+        }
+
+        // Sparkle trail — small dots behind star
+        for (let s = 1; s <= 8; s++) {
+          const trailProgress = Math.max(0, starProgress - s * 0.008);
+          const tIdx = trailProgress * (AFRICA_OUTLINE.length - 1);
+          const ti0 = Math.floor(tIdx);
+          const ti1 = Math.min(ti0 + 1, AFRICA_OUTLINE.length - 1);
+          const tt = tIdx - ti0;
+          const tx = AFRICA_OUTLINE[ti0][0] + (AFRICA_OUTLINE[ti1][0] - AFRICA_OUTLINE[ti0][0]) * tt;
+          const ty = AFRICA_OUTLINE[ti0][1] + (AFRICA_OUTLINE[ti1][1] - AFRICA_OUTLINE[ti0][1]) * tt;
+          const tPt = rotateYPt({ x: tx, y: ty, z: 0 }, africaRotAngle);
+          const tSx = canvas.width / 2 + tPt.x * AFRICA_SCALE;
+          const tSy = canvas.height / 2 + tPt.y * AFRICA_SCALE;
+
+          ctx.globalAlpha = (1 - s / 9) * 0.6 * pulse;
+          ctx.beginPath();
+          ctx.arc(tSx, tSy, 2.5 - s * 0.2, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(150, 255, 150, 1)`;
+          ctx.fill();
         }
       }
 
